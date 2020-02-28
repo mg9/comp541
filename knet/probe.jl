@@ -54,7 +54,7 @@ end
 
 """ 
     onewordprobe(x)
-Computes squared L2 norm of words after projection by a matrix.
+Computes L1 norm of words after projection by a matrix.
 """
 function (p::OneWordPSDProbe)(x)
     norms = []
