@@ -35,23 +35,15 @@ class TwoWordPSDProbe(Probe):
     Returns:
       A tensor of distances of shape (batch_size, max_seq_len, max_seq_len)
     """
-    print("size of batch: ", batch.shape)
-    print("size of proj: ", self.proj.shape)
     transformed = torch.matmul(batch, self.proj)
-    print("size of transformed: ", transformed.shape)
     batchlen, seqlen, rank = transformed.size()
     transformed = transformed.unsqueeze(2)
     transformed = transformed.expand(-1, -1, seqlen, -1)
     transposed = transformed.transpose(1,2)
-
-    print("size of transformed: ", transformed.shape)
-    print("size of transposed: ", transposed.shape)
-
     diffs = transformed - transposed
     squared_diffs = diffs.pow(2)
     squared_distances = torch.sum(squared_diffs, -1)
     return squared_distances
-
 
 
 class OneWordPSDProbe(Probe):
@@ -80,6 +72,7 @@ class OneWordPSDProbe(Probe):
       A tensor of depths of shape (batch_size, max_seq_len)
     """
     transformed = torch.matmul(batch, self.proj)
+    print(transformed[:,1,:])
     batchlen, seqlen, rank = transformed.size()
     norms = torch.bmm(transformed.view(batchlen* seqlen, 1, rank),
         transformed.view(batchlen* seqlen, rank, 1))

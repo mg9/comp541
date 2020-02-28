@@ -4,33 +4,65 @@ struct TwoWordPSDProbe
     probe
 end
 
+struct OneWordPSDProbe
+    probe
+end
+
 function TwoWordPSDProbe(model_dim::Int, probe_rank::Int)
     probe = param(probe_rank, model_dim)
     TwoWordPSDProbe(probe)
 end
 
-function (p::TwoWordPSDProbe)(x)
-    transformed = p.probe * x 
-    #println("size(transformed): ", size(transformed))
 
-    diffs = []
+function OneWordPSDProbe(model_dim::Int, probe_rank::Int)
+    probe = param(probe_rank, model_dim)
+    OneWordPSDProbe(probe)
+end
+
+function loadTwoWordPSDProbe(mparams)
+    probe = param(mparams)
+    TwoWordPSDProbe(probe)
+end
+
+function loadOneWordPSDProbe(mparams)
+    probe = param(mparams)
+    OneWordPSDProbe(probe)
+end
+
+mmul(w,x) = (w == 1 ? x : w == 0 ? 0 : reshape(w * reshape(x,size(x,1),:), (:, size(x)[2:end]...)))
+
+
+""" 
+    twowordprobe(x)
+Computes squared L2 distance after projection by a matrix.
+For a batch of sentences, computes all n^2 pairs of distances
+for each sentence in the batch.
+    
+"""
+function (p::TwoWordPSDProbe)(x)
+    squared_distances = []
+    transformed = mmul(p.probe, x)  # 1024 x 8 x 1
     for i in 1:size(transformed,2)
         df = hcat(transformed[:,i] .- transformed)
-        push!(diffs, df)
+        squared_df = abs2.(df) # 1024 x 8 x 1
+        squared_distance = sum(squared_df, dims=1) # 1 x 8 x 1
+        push!(squared_distances, squared_distance)
     end
-    diffs = hcat(diffs...)
-    #println("size(diffs): ", size(diffs))
-
-    squared_diffs = abs2.(diffs)
-    squared_distances = sum(squared_diffs, dims=1)
-    return squared_distances
+    return vcat(squared_distances...)
 end
 
 
-Knet.seed!(1)
-println("Two word PSD Probe...")
-myprobe = TwoWordPSDProbe(1024, 1024)
-x = randn(Float32, 1024, 8)
-x = convert(KnetArray{Float32,2}, x)
-myprobe(x)
-println("End ?")
+""" 
+    onewordprobe(x)
+Computes squared L2 norm of words after projection by a matrix.
+"""
+function (p::OneWordPSDProbe)(x)
+    norms = []
+    transformed = mmul(p.probe, x) 
+    for i in 1:size(transformed,2)
+        #push!(norms, norm(transformed[:,i]))
+        push!(norms, transformed[:,i]' * transformed[:,i])
+    end
+    return norms
+end
+

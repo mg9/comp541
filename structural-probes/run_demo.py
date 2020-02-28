@@ -118,10 +118,17 @@ def report_on_stdin(args):
   # Define the distance probe
   distance_probe = probe.TwoWordPSDProbe(args)
   distance_probe.load_state_dict(torch.load(args['probe']['distance_params_path'], map_location=args['device']))
+  proj_params = torch.load(args['probe']['distance_params_path'], map_location=args['device'])
+
+  #hf = h5py.File('distanceprobe.h5', 'w')
+  #hf.create_dataset('proj', data=proj_params['proj'].cpu())
 
   # Define the depth probe
   depth_probe = probe.OneWordPSDProbe(args)
   depth_probe.load_state_dict(torch.load(args['probe']['depth_params_path'], map_location=args['device']))
+  proj_params = torch.load(args['probe']['depth_params_path'], map_location=args['device'])
+  #hf = h5py.File('depthprobe.h5', 'w')
+  #hf.create_dataset('proj', data=proj_params['proj'].cpu())
 
   for index, line in tqdm(enumerate(sys.stdin), desc='[demoing]'):
     # Tokenize the sentence and create tensor inputs to BERT
@@ -145,15 +152,17 @@ def report_on_stdin(args):
       single_layer_features = encoded_layers[args['model']['model_layer']]
       representation = torch.stack([torch.mean(single_layer_features[0,untok_tok_mapping[i][0]:untok_tok_mapping[i][-1]+1,:], dim=0) for i in range(len(untokenized_sent))], dim=0)
       representation = representation.view(1, *representation.size())
-      print("representation: ", representation)
-      print("representation.shape: ", representation.shape)
-      hf = h5py.File('reps.h5', 'w')
-      hf.create_dataset('dataset_1', data=representation.cpu())
+      #print("representation.shape: ", representation.shape)
+      #hf = h5py.File('sentreps.h5', 'w')
+      #hf.create_dataset('dataset_1', data=representation.cpu())
 
 
       # Run BERT token vectors through the trained probes
       distance_predictions = distance_probe(representation.to(args['device'])).detach().cpu()[0][:len(untokenized_sent),:len(untokenized_sent)].numpy()
       depth_predictions = depth_probe(representation).detach().cpu()[0][:len(untokenized_sent)].numpy()
+      
+      #print("distance_predictions: ", distance_predictions)
+      print("depth_predictions: ", depth_predictions)
 
       # Print results visualizations
       print_distance_image(args, untokenized_sent, distance_predictions, index)
