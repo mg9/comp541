@@ -52,7 +52,7 @@ end
 
 
 
-## Run demo
+## RUN demo
 yaml_args = YAML.load(open(CONFIG_PATH))
 #setup_new_experiment_dir(Dict(), yaml_args)
 report_on_stdin(yaml_args)
