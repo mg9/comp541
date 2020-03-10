@@ -19,6 +19,17 @@ mutable struct SentenceObservations
     embeddings
 end
 
+mutable struct Dataset
+    trn
+    dev 
+    test 
+end
+
+function Dataset(args)
+    trn, dev, test = read_from_disk(args)
+    Dataset(trn, dev, test)
+end
+
 function Observation(lineparts)
     ## TODO refactor here 
     if length(lineparts) == 10
@@ -97,9 +108,5 @@ function read_from_disk(args)
 end
 
 
-## RUN example
-CONFIG_PATH = "example/config/prd_en_ewt-ud-sample.yaml"
-yaml_args = YAML.load(open(CONFIG_PATH))
 
-trn, dev, test = read_from_disk(yaml_args)
-println(size(trn[1].embeddings), size(dev[1].embeddings), size(test[1].embeddings))
+
