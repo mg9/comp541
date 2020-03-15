@@ -21,21 +21,25 @@
 
 # Train sections
 for i in `seq -w 2 21`; do
-        cat /u/nlp/data/PTB3/treebank_3/parsed/mrg/wsj/$i/*.mrg
+        cat /kuacc/users/mugekural/workfolder/balina-data/treebank3/parsed/mrg/wsj/$i/*.mrg
+        #cat /u/nlp/data/PTB3/treebank_3/parsed/mrg/wsj/$i/*.mrg
 done > ptb3-wsj-train.trees
 
 # Dev sections
 for i in 22; do
-        cat /u/nlp/data/PTB3/treebank_3/parsed/mrg/wsj/$i/*.mrg
+        cat /kuacc/users/mugekural/workfolder/balina-data/treebank3/parsed/mrg/wsj/$i/*.mrg
+        #cat /u/nlp/data/PTB3/treebank_3/parsed/mrg/wsj/$i/*.mrg
 done > ptb3-wsj-dev.trees
 
 # Test sections
 for i in 23; do
-        cat /u/nlp/data/PTB3/treebank_3/parsed/mrg/wsj/$i/*.mrg
+        cat /kuacc/users/mugekural/workfolder/balina-data/treebank3/parsed/mrg/wsj/$i/*.mrg
 done > ptb3-wsj-test.trees
 
 for split in train dev test; do
     echo Converting $split split...
+    #java -cp "/kuacc/users/mugekural/workfolder/comp541/corenlp/stanford-corenlp-full-2018-10-05/*" edu.stanford.nlp.pipeline.StanfordCoreNLP  -mx1g edu.stanford.nlp.trees.EnglishGrammaticalStructure -treeFile ptb3-wsj-${split}.trees -checkConnected -basic -keepPunct -conllx > ptb3-wsj-${split}.conllx
     java -mx1g edu.stanford.nlp.trees.EnglishGrammaticalStructure -treeFile ptb3-wsj-${split}.trees -checkConnected -basic -keepPunct -conllx > ptb3-wsj-${split}.conllx
+
 done
 

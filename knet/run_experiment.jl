@@ -35,10 +35,12 @@ Returns:
   A probe_class to be instantiated.
 """
 function choose_probe(args)
+  maximum_rank = args["probe"]["maximum_rank"] 
+  embed_dim = args["model"]["hidden_dim"]
   if args["probe"]["task_signature"] == "word"
     return OneWordPSDProbe
   elseif args["probe"]["task_signature"] == "word_pair"
-    return TwoWordPSDProbe
+    return TwoWordPSDProbe(embed_dim, maximum_rank)
   end
 end
 
@@ -114,27 +116,8 @@ function execute_experiment(args, train_probe, report_results)
 
   if train_probe == 1
     print("Training probe...")
-    run_train_probe(args, probe, dataset, model, loss) #reporter, regimen)
+    run_train_probe(args, probe, dataset, model, loss) 
   end
-
-  #=
-  regimen_class = regimen.ProbeRegimen
-
-  task = task_class()
-  expt_dataset = dataset_class(args, task)
-  expt_reporter = reporter_class(args)
-  expt_probe = probe_class(args)
-  expt_model = model_class(args)
-  expt_regimen = regimen_class(args)
-  expt_loss = loss_class(args)
-
-
-
-  if report_results
-    print("Reporting results of trained probe...")
-    run_report_results(args, expt_probe, expt_dataset, expt_model, expt_loss, expt_reporter, expt_regimen)
-  end
-  =#
 end
 
 
@@ -159,5 +142,5 @@ end
 
 ## RUN experiment
 CONFIG_PATH = "example/config/prd_en_ewt-ud-sample.yaml"
-yaml_args = YAML.load(open(CONFIG_PATH))
-execute_experiment(yaml_args, 1, 1)
+args = YAML.load(open(CONFIG_PATH))
+execute_experiment(args, 1, 1)

@@ -1,4 +1,3 @@
-include("run_experiment.jl")
 include("probe.jl")
 
 #import Pkg; Pkg.add("ArgParse"); Pkg.add("YAML")
@@ -29,9 +28,9 @@ function report_on_stdin(yaml_args)
   distance_predictions = distance_probe(sentrep)
   depth_predictions = depth_probe(sentrep)
 
-  #println("size(distance_predictions): ", size(distance_predictions))
+  println("size(distance_predictions): ", size(distance_predictions))
   #println("distance_predictions: ", distance_predictions)
-  #println("depth_predictions: ", depth_predictions)
+  println("depth_predictions: ", depth_predictions)
 end
 
 

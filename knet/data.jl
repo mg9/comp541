@@ -15,8 +15,11 @@ end
 
 mutable struct SentenceObservations
     id
-    Observations
+    observations
     embeddings
+    distances
+    head_dict
+    ind_dict
 end
 
 mutable struct Dataset
@@ -38,16 +41,56 @@ function Observation(lineparts)
 end
 
 function SentenceObservations(id, observations)
-   SentenceObservations(id, observations, Any)
+   head_dict = Dict()
+   ind_dict = Dict()
+
+   inc = 0 
+   for (idx, obs) in enumerate(observations)
+        if obs.head_indices == "_"
+            head_ind = idx 
+            inc += 1
+        else
+            head_ind = parse(Int,obs.head_indices) 
+        end
+        ind_dict[idx] = idx + inc
+        if !(head_ind in keys(head_dict))
+            head_dict[head_ind] = []
+        end
+        push!(head_dict[head_ind], (obs.index, idx))
+    end
+   distances = calculate_wordpair_distances(head_dict, ind_dict, length(observations))
+   SentenceObservations(id, observations, Any, distances, head_dict, ind_dict)
 end
 
+function calculate_wordpair_distances(head_dict, ind_dict, maxlength)
+    distances = zeros(maxlength, maxlength)
+    root = head_dict[0][1][2]
+    function dcalc(prev, root, inc)
+        if ! (root in keys(head_dict)) return; end
+        for (k,v) in head_dict[root]
+            distances[root, v] = 1
+            distances[v, root] = 1
+            if !(isnothing(prev))           
+                distances[prev, v] = inc + 1
+                distances[v, prev] = inc + 1
+            end
+            dcalc(root, v, inc + 1)
+        end
+    end
+    dcalc(nothing, root, 0)
+    return distances
+end
+
+"""
+    Returns dictionaries for dataset sentence observations.
+"""
 function load_conll_dataset(model_layer, corpus_path, embeddings_path)
     sent_observations = Dict()
     observations = []
-    numsentences = -1
+    numsentences = 0
     for line in eachline(corpus_path)
         if startswith(line, "# newdoc") || startswith(line, "# text")  && continue 
-        elseif startswith(line, "# sent_id") numsentences += 1;   continue
+        elseif startswith(line, "# sent_id") numsentences += 1; observations = []; continue
         else
             obs = Observation(split(line))
             if !isnothing(obs)
@@ -56,7 +99,8 @@ function load_conll_dataset(model_layer, corpus_path, embeddings_path)
                 sent_observations[numsentences] =  SentenceObservations(numsentences, observations)  
             end
         end
-    end 
+    end
+    sent_observations[numsentences] =  SentenceObservations(numsentences, observations)  ## add last sentence TODO change here!
     return addembeddings(model_layer, sent_observations, embeddings_path)
 end
 
@@ -66,8 +110,8 @@ function addembeddings(model_layer, sent_observations, embeddings_path)
     embeddings = h5open(embeddings_path, "r") do file
         read(file)
     end
-    for id in 0:length(sent_observations)-1
-        sentence_embeddings = embeddings[string(id)]  # e.g. 1024 x 18 x 3
+    for id in 1:length(sent_observations)
+        sentence_embeddings = embeddings[string(id-1)]  # e.g. 1024 x 18 x 3
         sent_observations[id].embeddings =  sentence_embeddings[:,:, model_layer+1]
     end
     return sent_observations
