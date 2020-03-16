@@ -5,6 +5,7 @@ import sys
 from torch import optim
 import torch
 from tqdm import tqdm
+import h5py
 
 class ProbeRegimen:
   """Basic regimen for training and running inference on probes.
@@ -46,6 +47,7 @@ class ProbeRegimen:
       train_dataset: a torch.DataLoader object for iterating through training data
       dev_dataset: a torch.DataLoader object for iterating through dev data
     """
+    p = 0
     self.set_optimizer(probe)
     min_dev_loss = sys.maxsize
     min_dev_loss_epoch = -1
@@ -57,9 +59,15 @@ class ProbeRegimen:
       epoch_train_loss_count = 0
       epoch_dev_loss_count = 0
       for batch in tqdm(train_dataset, desc='[training batch]'):
+        p += 1 
         probe.train()
         self.optimizer.zero_grad()
         observation_batch, label_batch, length_batch, _ = batch
+        #print("label_batch: ", label_batch.shape)
+        hf = h5py.File('sentencedistances'+str(p)+'.h5', 'w')
+        hf.create_dataset('labels', data=label_batch.cpu())
+        hf.create_dataset('observation', data=observation_batch.cpu())
+        
         word_representations = model(observation_batch)
         predictions = probe(word_representations)
         batch_loss, count = loss(predictions, label_batch, length_batch)

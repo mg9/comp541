@@ -18,8 +18,6 @@ mutable struct SentenceObservations
     observations
     embeddings
     distances
-    head_dict
-    ind_dict
 end
 
 mutable struct Dataset
@@ -41,45 +39,9 @@ function Observation(lineparts)
 end
 
 function SentenceObservations(id, observations)
-   head_dict = Dict()
-   ind_dict = Dict()
-
-   inc = 0 
-   for (idx, obs) in enumerate(observations)
-        if obs.head_indices == "_"
-            head_ind = idx 
-            inc += 1
-        else
-            head_ind = parse(Int,obs.head_indices) 
-        end
-        ind_dict[idx] = idx + inc
-        if !(head_ind in keys(head_dict))
-            head_dict[head_ind] = []
-        end
-        push!(head_dict[head_ind], (obs.index, idx))
-    end
-   distances = calculate_wordpair_distances(head_dict, ind_dict, length(observations))
-   SentenceObservations(id, observations, Any, distances, head_dict, ind_dict)
+   SentenceObservations(id, observations, Any, Any)
 end
 
-function calculate_wordpair_distances(head_dict, ind_dict, maxlength)
-    distances = zeros(maxlength, maxlength)
-    root = head_dict[0][1][2]
-    function dcalc(prev, root, inc)
-        if ! (root in keys(head_dict)) return; end
-        for (k,v) in head_dict[root]
-            distances[root, v] = 1
-            distances[v, root] = 1
-            if !(isnothing(prev))           
-                distances[prev, v] = inc + 1
-                distances[v, prev] = inc + 1
-            end
-            dcalc(root, v, inc + 1)
-        end
-    end
-    dcalc(nothing, root, 0)
-    return distances
-end
 
 """
     Returns dictionaries for dataset sentence observations.
@@ -101,11 +63,13 @@ function load_conll_dataset(model_layer, corpus_path, embeddings_path)
         end
     end
     sent_observations[numsentences] =  SentenceObservations(numsentences, observations)  ## add last sentence TODO change here!
-    return addembeddings(model_layer, sent_observations, embeddings_path)
+    withembeddings = add_embeddings(model_layer, sent_observations, embeddings_path)
+    withdistances = add_sentence_distances(withembeddings)
+    return withdistances
 end
 
 
-function addembeddings(model_layer, sent_observations, embeddings_path)
+function add_embeddings(model_layer, sent_observations, embeddings_path)
     println("Loading Pretrained Embeddings from $embeddings_path , using layer $model_layer")
     embeddings = h5open(embeddings_path, "r") do file
         read(file)
@@ -117,6 +81,32 @@ function addembeddings(model_layer, sent_observations, embeddings_path)
     return sent_observations
 end
 
+
+function add_sentence_distances(sent_observations)
+    distances_1to40 = h5open("sentencedistances1.h5", "r") do file  ## TODO change here !!
+        read(file)
+    end
+
+    distances_40to80 = h5open("sentencedistances2.h5", "r") do file  ## TODO change here !!
+        read(file)
+    end
+    
+    distances_80to100 = h5open("sentencedistances3.h5", "r") do file  ## TODO change here !!
+        read(file)
+    end
+
+    for id in 1:length(sent_observations)
+        sentencelength = length(sent_observations[id].observations)
+        if id < 41
+            sent_observations[id].distances = distances_1to40["labels"][:,:,id][1:sentencelength,1:sentencelength]
+        elseif id < 81
+            sent_observations[id].distances = distances_40to80["labels"][:,:,id-40][1:sentencelength,1:sentencelength]
+        elseif id < 101
+            sent_observations[id].distances = distances_80to100["labels"][:,:,id-80][1:sentencelength,1:sentencelength]
+        end
+    end
+    return sent_observations
+end
 
 
 """
@@ -145,10 +135,10 @@ function read_from_disk(args)
     test_embeddings_path = join([embeddings_root,args["dataset"]["embeddings"]["test_path"]])
  
     train_observations = load_conll_dataset(model_layer, train_corpus_path, train_embeddings_path)
-    dev_observations   = load_conll_dataset(model_layer, dev_corpus_path, dev_embeddings_path)
-    test_observations  = load_conll_dataset(model_layer, test_corpus_path, test_embeddings_path)
+    #dev_observations   = load_conll_dataset(model_layer, dev_corpus_path, dev_embeddings_path)
+    #test_observations  = load_conll_dataset(model_layer, test_corpus_path, test_embeddings_path)
 
-    return train_observations, dev_observations, test_observations
+    return train_observations, Any, Any #dev_observations, test_observations
 end
 
 
