@@ -4,10 +4,10 @@ include("probe.jl")
 using HDF5, ArgParse, YAML
 
 
-SENTREPS_PATH = "example/data/sentreps.h5"
-CONFIG_PATH = "example/demo-bert.yaml"
-TWO_WORD_PROBE_PARAMS_PATH = "example/data/distanceprobe.h5"
-ONE_WORD_PROBE_PARAMS_PATH = "example/data/depthprobe.h5"
+SENTREPS_PATH = "sentreps.h5"
+CONFIG_PATH = "demo-bert.yaml"
+TWO_WORD_PROBE_PARAMS_PATH = "distanceprobe.h5"
+ONE_WORD_PROBE_PARAMS_PATH = "depthprobe.h5"
 
 
 """

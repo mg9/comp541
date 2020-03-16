@@ -51,7 +51,7 @@ end
 
 
 
-CONFIG_PATH = "example/config/prd_en_ewt-ud-sample.yaml"
+CONFIG_PATH = "config/prd_en_ewt-ud-sample.yaml"
 args = YAML.load(open(CONFIG_PATH))
 dataset = Dataset(args)
 probe = choose_probe(args)

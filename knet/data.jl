@@ -83,27 +83,14 @@ end
 
 
 function add_sentence_distances(sent_observations)
-    distances_1to40 = h5open("sentencedistances1.h5", "r") do file  ## TODO change here !!
+    distances = h5open("data/en_ewt-ud-sample/distances/en_ewt-ud-train-sentencedistances.h5", "r") do file  ## TODO change here !!
         read(file)
     end
 
-    distances_40to80 = h5open("sentencedistances2.h5", "r") do file  ## TODO change here !!
-        read(file)
-    end
-    
-    distances_80to100 = h5open("sentencedistances3.h5", "r") do file  ## TODO change here !!
-        read(file)
-    end
 
     for id in 1:length(sent_observations)
         sentencelength = length(sent_observations[id].observations)
-        if id < 41
-            sent_observations[id].distances = distances_1to40["labels"][:,:,id][1:sentencelength,1:sentencelength]
-        elseif id < 81
-            sent_observations[id].distances = distances_40to80["labels"][:,:,id-40][1:sentencelength,1:sentencelength]
-        elseif id < 101
-            sent_observations[id].distances = distances_80to100["labels"][:,:,id-80][1:sentencelength,1:sentencelength]
-        end
+        sent_observations[id].distances = distances["labels"][:,:,id][1:sentencelength,1:sentencelength]
     end
     return sent_observations
 end

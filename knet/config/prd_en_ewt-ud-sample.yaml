@@ -12,13 +12,13 @@ dataset:
      - extra_info
      - embeddings
   corpus:
-    root: example/data/en_ewt-ud-sample/
+    root: data/en_ewt-ud-sample/
     train_path: en_ewt-ud-train.conllu
     dev_path: en_ewt-ud-dev.conllu
     test_path: en_ewt-ud-test.conllu
   embeddings:
     type: token #{token,subword}
-    root: example/data/en_ewt-ud-sample/ 
+    root: data/en_ewt-ud-sample/ 
     train_path: en_ewt-ud-train.elmo-layers.hdf5
     dev_path: en_ewt-ud-dev.elmo-layers.hdf5
     test_path: en_ewt-ud-test.elmo-layers.hdf5
@@ -40,7 +40,7 @@ probe_training:
   epochs: 30
   loss: L1
 reporting:
-  root: example/results
+  root: results
   observation_paths:
     train_path: train.observations
     dev_path: dev.observations
