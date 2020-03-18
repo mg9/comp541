@@ -15,34 +15,37 @@ end
 
 
 
+
 function loss(dataset, batchsize)
-  loss = 0.0
+  batchloss = 0.0
   numwords = 0
   for (id, sent) in collect(Iterators.take(dataset, batchsize))
     gold  = convert(_atype, sent.distances)
     embed = convert(_atype, sent.embeddings)
     pred  = probe(embed)  
-    numwords += length(gold)
-    loss  += sum(abs.(pred - gold))
+    sent_numwords= size(gold,1)
+    sent_loss  = sum(abs.(pred - gold))
+    squared_length = abs2.(sent_numwords)
+    normalized_sent_loss = sent_loss / squared_length
+    batchloss += normalized_sent_loss
   end
-  loss /= numwords
-  println("loss: ", loss)
-  return -loss
+  batchloss = batchloss / batchsize
+  return batchloss
 end
 
 
 
 function train(probe, trn, dev)
-  println("trn length: ", length(trn))
-  batchsize = 5
-  strn = sort!(collect(trn), by = x -> length(trn[x[1]].observations))
-  strn = Iterators.Stateful(strn)
+  batchsize = 100
+  trn = sort(collect(trn), by=x->x[1])
   iter = 0
   while iter < 100
+    strn = Iterators.Stateful(trn)
     J = @diff loss(strn, batchsize)
+    lossvalue = value(J)
+    println("iteration: $iter, loss: $lossvalue")
     for par in params(probe)
       g = grad(J, par)
-      if isnothing(g) return; end
       update!(value(par), g, eval(Meta.parse("Adam()")))
     end
     iter += 1

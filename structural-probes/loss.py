@@ -27,17 +27,35 @@ class L1DistanceLoss(nn.Module):
         batch_loss: average loss in the batch
         total_sents: number of sentences in the batch
     """
+
+    """
+    predictions:  torch.Size([100, 76, 76])
+    label_batch:  torch.Size([100, 76, 76])
+    length_batch:  torch.Size([100])
+    predictions_masked:  torch.Size([100, 76, 76])
+    labels_masked:  torch.Size([100, 76, 76])
+    total_sents:  tensor(100., device='cuda:0')
+    loss_per_sent:  torch.Size([100])
+    squared_lengths: [100]
+    """
+   
+
     labels_1s = (label_batch != -1).float()
+    
     predictions_masked = predictions * labels_1s
     labels_masked = label_batch * labels_1s
     total_sents = torch.sum((length_batch != 0)).float()
     squared_lengths = length_batch.pow(2).float()
+
+
     if total_sents > 0:
-      loss_per_sent = torch.sum(torch.abs(predictions_masked - labels_masked), dim=self.word_pair_dims)
+      loss_per_sent = torch.sum(torch.abs(predictions_masked - labels_masked), dim=self.word_pair_dims) 
       normalized_loss_per_sent = loss_per_sent / squared_lengths
       batch_loss = torch.sum(normalized_loss_per_sent) / total_sents
     else:
       batch_loss = torch.tensor(0.0, device=self.args['device'])
+
+
     return batch_loss, total_sents
 
 
@@ -65,6 +83,8 @@ class L1DepthLoss(nn.Module):
         batch_loss: average loss in the batch
         total_sents: number of sentences in the batch
     """
+   
+
     total_sents = torch.sum(length_batch != 0).float()
     labels_1s = (label_batch != -1).float()
     predictions_masked = predictions * labels_1s

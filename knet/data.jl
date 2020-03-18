@@ -83,7 +83,7 @@ end
 
 
 function add_sentence_distances(sent_observations)
-    distances = h5open("data/en_ewt-ud-sample/distances/en_ewt-ud-train-sentencedistances.h5", "r") do file  ## TODO change here !!
+    distances = h5open("data/en_ewt-ud-sample/distances/sentencedistances-en_ewt-ud-train.h5", "r") do file  ## TODO change here !!
         read(file)
     end
 

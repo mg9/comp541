@@ -13,7 +13,7 @@ class TwoWordPSDProbe(Probe):
   for each sentence in the batch.
   """
   def __init__(self, args):
-    print('Constructing TwoWordPSDProbe')
+    #print('Constructing TwoWordPSDProbe')
     super(TwoWordPSDProbe, self).__init__()
     self.args = args
     self.probe_rank = args['probe']['maximum_rank']

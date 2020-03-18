@@ -47,26 +47,26 @@ class ProbeRegimen:
       train_dataset: a torch.DataLoader object for iterating through training data
       dev_dataset: a torch.DataLoader object for iterating through dev data
     """
-    p = 0
     self.set_optimizer(probe)
     min_dev_loss = sys.maxsize
     min_dev_loss_epoch = -1
-    for epoch_index in tqdm(range(self.max_epochs), desc='[training]'):
+    
+    for epoch_index in tqdm(range(self.max_epochs), desc='[training]', disable=True):
       epoch_train_loss = 0
       epoch_dev_loss = 0
       epoch_train_epoch_count = 0
       epoch_dev_epoch_count = 0
       epoch_train_loss_count = 0
       epoch_dev_loss_count = 0
-      for batch in tqdm(train_dataset, desc='[training batch]'):
-        p += 1 
+      
+
+      for batch in tqdm(train_dataset, desc='[training batch]', disable=True):
         probe.train()
         self.optimizer.zero_grad()
         observation_batch, label_batch, length_batch, _ = batch
-        #print("label_batch: ", label_batch.shape)
-        hf = h5py.File('sentencedistances'+str(p)+'.h5', 'w')
-        hf.create_dataset('labels', data=label_batch.cpu())
-        hf.create_dataset('observation', data=observation_batch.cpu())
+        #hf = h5py.File('sentencedistances-en_ewt-ud-train.h5', 'w')
+        #hf.create_dataset('labels', data=label_batch.cpu())
+        #hf.create_dataset('observation', data=observation_batch.cpu())
         
         word_representations = model(observation_batch)
         predictions = probe(word_representations)
@@ -76,7 +76,10 @@ class ProbeRegimen:
         epoch_train_epoch_count += 1
         epoch_train_loss_count += count.detach().cpu().numpy()
         self.optimizer.step()
-      for batch in tqdm(dev_dataset, desc='[dev batch]'):
+      
+      
+      
+      for batch in tqdm(dev_dataset, desc='[dev batch]',  disable=True):
         self.optimizer.zero_grad()
         probe.eval()
         observation_batch, label_batch, length_batch, _ = batch
@@ -86,16 +89,22 @@ class ProbeRegimen:
         epoch_dev_loss += batch_loss.detach().cpu().numpy()*count.detach().cpu().numpy()
         epoch_dev_loss_count += count.detach().cpu().numpy()
         epoch_dev_epoch_count += 1
+      
+
       self.scheduler.step(epoch_dev_loss)
       tqdm.write('[epoch {}] Train loss: {}, Dev loss: {}'.format(epoch_index, epoch_train_loss/epoch_train_loss_count, epoch_dev_loss/epoch_dev_loss_count))
+      
       if epoch_dev_loss / epoch_dev_loss_count < min_dev_loss - 0.0001:
-        torch.save(probe.state_dict(), self.params_path)
+        #torch.save(probe.state_dict(), self.params_path)
         min_dev_loss = epoch_dev_loss / epoch_dev_loss_count
         min_dev_loss_epoch = epoch_index
-        tqdm.write('Saving probe parameters')
+        #tqdm.write('Saving probe parameters')
+      
       elif min_dev_loss_epoch < epoch_index - 4:
         tqdm.write('Early stopping')
         break
+      
+
 
   def predict(self, probe, model, dataset):
     """ Runs probe to compute predictions on a dataset.

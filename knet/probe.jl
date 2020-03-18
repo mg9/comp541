@@ -12,13 +12,13 @@ struct OneWordPSDProbe
 end
 
 function TwoWordPSDProbe(model_dim::Int, probe_rank::Int)
-    probe = Param(convert(_atype, randn(probe_rank, model_dim)));
+    probe = param(probe_rank, model_dim)
     TwoWordPSDProbe(probe)
 end
 
 
 function OneWordPSDProbe(model_dim::Int, probe_rank::Int)
-    probe = Param(convert(_atype, randn(probe_rank, model_dim)));
+    probe = param(probe_rank, model_dim)
     OneWordPSDProbe(probe)
 end
 

@@ -198,7 +198,7 @@ class SimpleDataset:
       new_observations.append(self.observation_class(sentence, *observation[1:]))
     return new_observations
 
-  def get_train_dataloader(self, shuffle=True, use_embeddings=True):
+  def get_train_dataloader(self, shuffle=False, use_embeddings=True):
     """Returns a PyTorch dataloader over the training dataset.
 
     Args:
@@ -286,7 +286,7 @@ class ELMoDataset(SimpleDataset):
   def optionally_add_embeddings(self, observations, pretrained_embeddings_path):
     """Adds pre-computed ELMo embeddings from disk to Observations."""
     layer_index = self.args['model']['model_layer']
-    print('Loading ELMo Pretrained Embeddings from {}; using layer {}'.format(pretrained_embeddings_path, layer_index))
+    #print('Loading ELMo Pretrained Embeddings from {}; using layer {}'.format(pretrained_embeddings_path, layer_index))
     embeddings = self.generate_token_embeddings_from_hdf5(self.args, observations, pretrained_embeddings_path, layer_index)
     observations = self.add_embeddings_to_observations(observations, embeddings)
     return observations
@@ -427,7 +427,7 @@ class ObservationIterator(Dataset):
       task: a Task object which takes Observations and constructs labels.
     """
     self.labels = []
-    for observation in tqdm(observations, desc='[computing labels]'):
+    for observation in tqdm(observations, desc='[computing labels]', disable=True):
       self.labels.append(task.labels(observation))
 
   def __len__(self):
