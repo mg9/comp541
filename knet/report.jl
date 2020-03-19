@@ -1,6 +1,7 @@
 using StatsBase
 
 function report_spearmanr(preds, dataset)
+    five_to_fifty = []
     spsents = Dict()
     for (id, pred_distances) in preds
         sent = dataset[id]
@@ -14,5 +15,11 @@ function report_spearmanr(preds, dataset)
         end
     end
     mean_spsents = mean.(values(spsents))
-    return collect(zip(keys(spsents), mean_spsents))
+    for (length, sp) in collect(zip(keys(spsents), mean_spsents))
+      if 51>length>4
+        push!(five_to_fifty, sp) 
+      end
+    end
+    five_to_fifty_sprmean = mean(five_to_fifty) 
+    return five_to_fifty_sprmean
 end

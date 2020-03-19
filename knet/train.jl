@@ -51,14 +51,8 @@ function train(probe, trn, dev)
       g = grad(J, par)
       update!(value(par), g, eval(Meta.parse("Adam()")))
     end
-    five_to_fifty = []
-    for (length, sp) in report_spearmanr(devpreds, dataset.dev)
-      if 51>length>4
-        push!(five_to_fifty, sp) 
-      end
-    end
-    five_to_fifty_mean = mean(five_to_fifty)  
-    println("iteration: $iter, trainloss: $trainloss, devloss: $devloss, 5-50 spearman mean: $five_to_fifty_mean")
+    five_to_fifty_sprmean = report_spearmanr(devpreds, dataset.dev)
+    println("iteration: $iter, trainloss: $trainloss, devloss: $devloss, 5-50 spearman mean: $five_to_fifty_sprmean")
     iter += 1
   end
 end
