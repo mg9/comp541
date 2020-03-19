@@ -64,10 +64,7 @@ class ProbeRegimen:
         probe.train()
         self.optimizer.zero_grad()
         observation_batch, label_batch, length_batch, _ = batch
-        #hf = h5py.File('sentencedistances-en_ewt-ud-train.h5', 'w')
-        #hf.create_dataset('labels', data=label_batch.cpu())
-        #hf.create_dataset('observation', data=observation_batch.cpu())
-        
+      
         word_representations = model(observation_batch)
         predictions = probe(word_representations)
         batch_loss, count = loss(predictions, label_batch, length_batch)
@@ -83,6 +80,11 @@ class ProbeRegimen:
         self.optimizer.zero_grad()
         probe.eval()
         observation_batch, label_batch, length_batch, _ = batch
+
+        #hf = h5py.File('sentencedistances-en_ewt-ud-dev.h5', 'w')
+        #hf.create_dataset('labels', data=label_batch.cpu())
+        #hf.create_dataset('observation', data=observation_batch.cpu())
+
         word_representations = model(observation_batch)
         predictions = probe(word_representations)
         batch_loss, count = loss(predictions, label_batch, length_batch)
@@ -95,7 +97,7 @@ class ProbeRegimen:
       tqdm.write('[epoch {}] Train loss: {}, Dev loss: {}'.format(epoch_index, epoch_train_loss/epoch_train_loss_count, epoch_dev_loss/epoch_dev_loss_count))
       
       if epoch_dev_loss / epoch_dev_loss_count < min_dev_loss - 0.0001:
-        #torch.save(probe.state_dict(), self.params_path)
+        torch.save(probe.state_dict(), self.params_path)
         min_dev_loss = epoch_dev_loss / epoch_dev_loss_count
         min_dev_loss_epoch = epoch_index
         #tqdm.write('Saving probe parameters')

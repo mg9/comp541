@@ -64,7 +64,17 @@ function load_conll_dataset(model_layer, corpus_path, embeddings_path)
     end
     sent_observations[numsentences] =  SentenceObservations(numsentences, observations)  ## add last sentence TODO change here!
     withembeddings = add_embeddings(model_layer, sent_observations, embeddings_path)
-    withdistances = add_sentence_distances(withembeddings)
+
+    ## TODO change here !!!
+    if occursin("train",embeddings_path)
+        local distances_path = "data/en_ewt-ud-sample/distances/sentencedistances-en_ewt-ud-train.h5"
+    elseif occursin("dev",embeddings_path)
+        local distances_path = "data/en_ewt-ud-sample/distances/sentencedistances-en_ewt-ud-dev.h5"
+    end
+    distances = h5open(distances_path, "r") do file 
+        read(file)
+    end
+    withdistances = add_sentence_distances(withembeddings, distances)
     return withdistances
 end
 
@@ -82,12 +92,7 @@ function add_embeddings(model_layer, sent_observations, embeddings_path)
 end
 
 
-function add_sentence_distances(sent_observations)
-    distances = h5open("data/en_ewt-ud-sample/distances/sentencedistances-en_ewt-ud-train.h5", "r") do file  ## TODO change here !!
-        read(file)
-    end
-
-
+function add_sentence_distances(sent_observations, distances)
     for id in 1:length(sent_observations)
         sentencelength = length(sent_observations[id].observations)
         sent_observations[id].distances = distances["labels"][:,:,id][1:sentencelength,1:sentencelength]
@@ -122,10 +127,10 @@ function read_from_disk(args)
     test_embeddings_path = join([embeddings_root,args["dataset"]["embeddings"]["test_path"]])
  
     train_observations = load_conll_dataset(model_layer, train_corpus_path, train_embeddings_path)
-    #dev_observations   = load_conll_dataset(model_layer, dev_corpus_path, dev_embeddings_path)
+    dev_observations   = load_conll_dataset(model_layer, dev_corpus_path, dev_embeddings_path)
     #test_observations  = load_conll_dataset(model_layer, test_corpus_path, test_embeddings_path)
 
-    return train_observations, Any, Any #dev_observations, test_observations
+    return train_observations, dev_observations, Any # test_observations
 end
 
 

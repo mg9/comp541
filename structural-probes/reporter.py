@@ -108,8 +108,11 @@ class WordPairReporter(Reporter):
         label = label[:length,:length].cpu()
         spearmanrs = [spearmanr(pred, gold) for pred, gold in zip(prediction, label)]
         lengths_to_spearmanrs[length].extend([x.correlation for x in spearmanrs])
+
     mean_spearman_for_each_length = {length: np.mean(lengths_to_spearmanrs[length]) 
         for length in lengths_to_spearmanrs}
+
+    #print("mean_spearman_for_each_length: ", mean_spearman_for_each_length)
 
     with open(os.path.join(self.reporting_root, split_name + '.spearmanr'), 'w') as fout:
       for length in sorted(mean_spearman_for_each_length):
@@ -118,6 +121,8 @@ class WordPairReporter(Reporter):
     with open(os.path.join(self.reporting_root, split_name + '.spearmanr-5_50-mean'), 'w') as fout:
       mean = np.mean([mean_spearman_for_each_length[x] for x in range(5,51) if x in mean_spearman_for_each_length])
       fout.write(str(mean) + '\n')
+
+    print("5-to-50 spearman mean: ", mean)
 
   def report_image_examples(self, prediction_batches, dataset, split_name):
     """Writes predicted and gold distance matrices to disk for the first 20

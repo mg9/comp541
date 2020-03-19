@@ -1,7 +1,7 @@
 using Dates, YAML, Knet
 include("data.jl")
 include("probe.jl")
-
+include("report.jl")
 
 function choose_probe(args)
   maximum_rank = args["probe"]["maximum_rank"] 
@@ -14,15 +14,15 @@ function choose_probe(args)
 end
 
 
-
-
-function loss(dataset, batchsize)
+function loss(dataset, batchsize, type)
   batchloss = 0.0
-  numwords = 0
   for (id, sent) in collect(Iterators.take(dataset, batchsize))
     gold  = convert(_atype, sent.distances)
     embed = convert(_atype, sent.embeddings)
-    pred  = probe(embed)  
+    pred  = probe(embed)
+    if type == "dev"
+      devpreds[id] = pred
+    end  
     sent_numwords= size(gold,1)
     sent_loss  = sum(abs.(pred - gold))
     squared_length = abs2.(sent_numwords)
@@ -36,18 +36,29 @@ end
 
 
 function train(probe, trn, dev)
+  global devpreds = Dict()
   batchsize = 100
   trn = sort(collect(trn), by=x->x[1])
+  dev = sort(collect(dev), by=x->x[1])
   iter = 0
-  while iter < 100
+  while iter < 10
     strn = Iterators.Stateful(trn)
-    J = @diff loss(strn, batchsize)
-    lossvalue = value(J)
-    println("iteration: $iter, loss: $lossvalue")
+    sdev = Iterators.Stateful(dev)
+    J = @diff loss(strn, batchsize, "train")
+    trainloss = value(J)
+    devloss = loss(sdev, batchsize, "dev")
     for par in params(probe)
       g = grad(J, par)
       update!(value(par), g, eval(Meta.parse("Adam()")))
     end
+    five_to_fifty = []
+    for (length, sp) in report_spearmanr(devpreds, dataset.dev)
+      if 51>length>4
+        push!(five_to_fifty, sp) 
+      end
+    end
+    five_to_fifty_mean = mean(five_to_fifty)  
+    println("iteration: $iter, trainloss: $trainloss, devloss: $devloss, 5-50 spearman mean: $five_to_fifty_mean")
     iter += 1
   end
 end
