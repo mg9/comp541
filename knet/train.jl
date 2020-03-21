@@ -52,11 +52,11 @@ function train(probe, trn, dev)
       update!(value(par), g, eval(Meta.parse("Adam()")))
     end
     five_to_fifty_sprmean = report_spearmanr(devpreds, dataset.dev)
-    println("iteration: $iter, trainloss: $trainloss, devloss: $devloss, 5-50 spearman mean: $five_to_fifty_sprmean")
+    uuas = report_uuas(devpreds, dataset.dev)
+    println("iteration: $iter, trainloss: $trainloss, devloss: $devloss, 5-50 spearman mean: $five_to_fifty_sprmean, uuas: $uuas")
     iter += 1
   end
 end
-
 
 
 CONFIG_PATH = "config/prd_en_ewt-ud-sample.yaml"
