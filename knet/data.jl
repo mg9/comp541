@@ -51,30 +51,24 @@ function load_conll_dataset(model_layer, corpus_path, embeddings_path)
     observations = []
     numsentences = 0
     for line in eachline(corpus_path)
-        if startswith(line, "# newdoc") || startswith(line, "# text")  && continue 
-        elseif startswith(line, "# sent_id") numsentences += 1; observations = []; continue
+        obs = Observation(split(line))
+        if !isnothing(obs)
+            push!(observations, obs)
         else
-            obs = Observation(split(line))
-            if !isnothing(obs)
-                push!(observations, obs)
-            else
-                sent_observations[numsentences] =  SentenceObservations(numsentences, observations)  
-            end
+            numsentences += 1; 
+            sent_observations[numsentences] =  SentenceObservations(numsentences, observations)  
+            observations = []
         end
+        #end
     end
-    sent_observations[numsentences] =  SentenceObservations(numsentences, observations)  ## add last sentence TODO change here!
+    
     withembeddings = add_embeddings(model_layer, sent_observations, embeddings_path)
 
-    ## TODO change here !!!
-    if occursin("train",embeddings_path)
-        local distances_path = "data/en_ewt-ud-sample/distances/sentencedistances-en_ewt-ud-train.h5"
-    elseif occursin("dev",embeddings_path)
-        local distances_path = "data/en_ewt-ud-sample/distances/sentencedistances-en_ewt-ud-dev.h5"
+    if occursin("train", embeddings_path)
+        withdistances = add_sentence_distances(withembeddings, "/kuacc/users/mugekural/workfolder/comp541/knet/data/treebank3/distances/train/sentencedistances-ptb3-train")
+    elseif occursin("dev", embeddings_path)
+        withdistances = add_sentence_distances(withembeddings, "/kuacc/users/mugekural/workfolder/comp541/knet/data/treebank3/distances/dev/sentencedistances-ptb3-dev")
     end
-    distances = h5open(distances_path, "r") do file 
-        read(file)
-    end
-    withdistances = add_sentence_distances(withembeddings, distances)
     return withdistances
 end
 
@@ -92,10 +86,21 @@ function add_embeddings(model_layer, sent_observations, embeddings_path)
 end
 
 
-function add_sentence_distances(sent_observations, distances)
+function add_sentence_distances(sent_observations, pathbase)
+
     for id in 1:length(sent_observations)
+        if id%4 >0 ? k=floor(id/4) + 1 : k=floor(id/4); end
+        distances_path = string(pathbase,string(Integer(k)),".h5")
+        println("your path is $distances_path, id is: $id")
+        distances = h5open(distances_path, "r") do file 
+            read(file)
+        end
         sentencelength = length(sent_observations[id].observations)
-        sent_observations[id].distances = distances["labels"][:,:,id][1:sentencelength,1:sentencelength]
+        idmod = (id%4)
+        if idmod == 0
+            idmod = 4
+        end
+        sent_observations[id].distances = distances["labels"][:,:,idmod][1:sentencelength,1:sentencelength]
     end
     return sent_observations
 end
@@ -126,11 +131,11 @@ function read_from_disk(args)
     dev_embeddings_path = join([embeddings_root, args["dataset"]["embeddings"]["dev_path"]])
     test_embeddings_path = join([embeddings_root,args["dataset"]["embeddings"]["test_path"]])
  
-    train_observations = load_conll_dataset(model_layer, train_corpus_path, train_embeddings_path)
-    dev_observations   = load_conll_dataset(model_layer, dev_corpus_path, dev_embeddings_path)
+    train_sents_observations = load_conll_dataset(model_layer, train_corpus_path, train_embeddings_path)
+    dev_sents_observations   = load_conll_dataset(model_layer, dev_corpus_path, dev_embeddings_path)
     #test_observations  = load_conll_dataset(model_layer, test_corpus_path, test_embeddings_path)
 
-    return train_observations, dev_observations, Any # test_observations
+    return train_sents_observations, dev_sents_observations, Any # test_observations
 end
 
 

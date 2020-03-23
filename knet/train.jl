@@ -41,7 +41,7 @@ function train(probe, trn, dev)
   trn = sort(collect(trn), by=x->x[1])
   dev = sort(collect(dev), by=x->x[1])
   iter = 0
-  while iter < 10
+  while iter < 10000
     strn = Iterators.Stateful(trn)
     sdev = Iterators.Stateful(dev)
     J = @diff loss(strn, batchsize, "train")
@@ -49,7 +49,8 @@ function train(probe, trn, dev)
     devloss = loss(sdev, batchsize, "dev")
     for par in params(probe)
       g = grad(J, par)
-      update!(value(par), g, eval(Meta.parse("Adam()")))
+      #update!(value(par), g, eval(Meta.parse("Adam()")))
+      update!(value(par), g, lr=0.01)
     end
     five_to_fifty_sprmean = report_spearmanr(devpreds, dataset.dev)
     uuas = report_uuas(devpreds, dataset.dev)
@@ -59,7 +60,7 @@ function train(probe, trn, dev)
 end
 
 
-CONFIG_PATH = "config/prd_en_ewt-ud-sample.yaml"
+CONFIG_PATH = "config/naacl19/elmo/ptb-prd-ELMo2.yaml"
 args = YAML.load(open(CONFIG_PATH))
 dataset = Dataset(args)
 probe = choose_probe(args)

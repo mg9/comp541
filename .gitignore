@@ -10,3 +10,4 @@ scripts/ptb3-wsj-test.trees
 scripts/ptb3-wsj-train.trees
 scripts/raw.dev.txt
 scripts/raw.train.txt
+scripts/raw.test.txt

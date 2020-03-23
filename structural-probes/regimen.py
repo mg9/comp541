@@ -59,6 +59,7 @@ class ProbeRegimen:
       epoch_train_loss_count = 0
       epoch_dev_loss_count = 0
       
+      #p=0
 
       for batch in tqdm(train_dataset, desc='[training batch]', disable=True):
         probe.train()
@@ -77,14 +78,15 @@ class ProbeRegimen:
       
       
       for batch in tqdm(dev_dataset, desc='[dev batch]',  disable=True):
+        #p+=1
         self.optimizer.zero_grad()
         probe.eval()
         observation_batch, label_batch, length_batch, _ = batch
 
-        #hf = h5py.File('sentencedistances-en_ewt-ud-dev.h5', 'w')
+        #hf = h5py.File('sentencedistances-ptb3-dev'+str(p)+'.h5', 'w')
         #hf.create_dataset('labels', data=label_batch.cpu())
         #hf.create_dataset('observation', data=observation_batch.cpu())
-
+      
         word_representations = model(observation_batch)
         predictions = probe(word_representations)
         batch_loss, count = loss(predictions, label_batch, length_batch)
