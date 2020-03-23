@@ -46,7 +46,7 @@ end
 """
     Returns dictionaries for dataset sentence observations.
 """
-function load_conll_dataset(model_layer, corpus_path, embeddings_path)
+function load_conll_dataset(model_layer, corpus_path, embeddings_path, distances_path, distances_batch_size)
     sent_observations = Dict()
     observations = []
     numsentences = 0
@@ -63,12 +63,8 @@ function load_conll_dataset(model_layer, corpus_path, embeddings_path)
     end
     
     withembeddings = add_embeddings(model_layer, sent_observations, embeddings_path)
+    withdistances = add_sentence_distances(withembeddings, distances_path, distances_batch_size)
 
-    if occursin("train", embeddings_path)
-        withdistances = add_sentence_distances(withembeddings, "/kuacc/users/mugekural/workfolder/comp541/knet/data/treebank3/distances/train/sentencedistances-ptb3-train")
-    elseif occursin("dev", embeddings_path)
-        withdistances = add_sentence_distances(withembeddings, "/kuacc/users/mugekural/workfolder/comp541/knet/data/treebank3/distances/dev/sentencedistances-ptb3-dev")
-    end
     return withdistances
 end
 
@@ -86,19 +82,18 @@ function add_embeddings(model_layer, sent_observations, embeddings_path)
 end
 
 
-function add_sentence_distances(sent_observations, pathbase)
+function add_sentence_distances(sent_observations, pathbase, batchsize)
 
     for id in 1:length(sent_observations)
-        if id%4 >0 ? k=floor(id/4) + 1 : k=floor(id/4); end
-        distances_path = string(pathbase,string(Integer(k)),".h5")
-        println("your path is $distances_path, id is: $id")
-        distances = h5open(distances_path, "r") do file 
+        if id% batchsize >0 ? k=floor(id/batchsize) + 1 : k=floor(id/batchsize); end
+        distances_file = string(pathbase,string(Integer(k)),".h5")
+        distances = h5open(distances_file, "r") do file 
             read(file)
         end
         sentencelength = length(sent_observations[id].observations)
-        idmod = (id%4)
+        idmod = (id%batchsize)
         if idmod == 0
-            idmod = 4
+            idmod = batchsize
         end
         sent_observations[id].distances = distances["labels"][:,:,idmod][1:sentencelength,1:sentencelength]
     end
@@ -120,8 +115,10 @@ Returns:
 
 function read_from_disk(args)
     model_layer = args["model"]["model_layer"]
+    distances_batchsize = args["dataset"]["distances"]["distances_batch_size"]
     corpus_root = args["dataset"]["corpus"]["root"]
     embeddings_root = args["dataset"]["embeddings"]["root"]
+    distances_root = args["dataset"]["distances"]["root"]
 
     train_corpus_path = join([corpus_root, args["dataset"]["corpus"]["train_path"]])
     dev_corpus_path = join([corpus_root, args["dataset"]["corpus"]["dev_path"]])
@@ -131,8 +128,11 @@ function read_from_disk(args)
     dev_embeddings_path = join([embeddings_root, args["dataset"]["embeddings"]["dev_path"]])
     test_embeddings_path = join([embeddings_root,args["dataset"]["embeddings"]["test_path"]])
  
-    train_sents_observations = load_conll_dataset(model_layer, train_corpus_path, train_embeddings_path)
-    dev_sents_observations   = load_conll_dataset(model_layer, dev_corpus_path, dev_embeddings_path)
+    train_distances_path = join([distances_root,args["dataset"]["distances"]["train_path"]])
+    dev_distances_path = join([distances_root,args["dataset"]["distances"]["dev_path"]])
+
+    train_sents_observations = load_conll_dataset(model_layer, train_corpus_path, train_embeddings_path, train_distances_path, distances_batchsize)
+    dev_sents_observations   = load_conll_dataset(model_layer, dev_corpus_path, dev_embeddings_path, dev_distances_path, distances_batchsize)
     #test_observations  = load_conll_dataset(model_layer, test_corpus_path, test_embeddings_path)
 
     return train_sents_observations, dev_sents_observations, Any # test_observations
