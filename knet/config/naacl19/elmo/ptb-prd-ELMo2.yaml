@@ -20,7 +20,7 @@ model:
   model_layer: 2 # BERT-base: {1,...,12}; ELMo: {1,2,3}
 probe:
   task_signature: word_pair # word, word_pair
-  maximum_rank: 1024
+  maximum_rank: 32
 probe_training:
   epochs: 40
   loss: L1

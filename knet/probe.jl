@@ -1,4 +1,6 @@
 using Knet, LinearAlgebra
+import Distributions: Uniform 
+include("utils.jl")
 
 _usegpu = gpu()>=0
 _atype = ifelse(_usegpu, KnetArray{Float32}, Array{Float64})
@@ -12,7 +14,7 @@ struct OneWordPSDProbe
 end
 
 function TwoWordPSDProbe(model_dim::Int, probe_rank::Int)
-    probe = param(probe_rank, model_dim)
+    probe = param(rand(Uniform(-0.5,0.5), (probe_rank, model_dim)), atype=_atype)
     TwoWordPSDProbe(probe)
 end
 
@@ -23,7 +25,7 @@ function OneWordPSDProbe(model_dim::Int, probe_rank::Int)
 end
 
 function loadTwoWordPSDProbe(mparams)
-    probe = param(mparams)
+    probe = param(KnetArray(mparams))
     TwoWordPSDProbe(probe)
 end
 
@@ -32,7 +34,8 @@ function loadOneWordPSDProbe(mparams)
     OneWordPSDProbe(probe)
 end
 
-function mmul(w, x) 
+function mmul(w, x)
+
     if w == 1 
         return x
     elseif w == 0 
@@ -50,13 +53,45 @@ For a batch of sentences, computes all n^2 pairs of distances
 for each sentence in the batch.
     
 """ 
+# probesize -> P x E 
+# x -> E x maxlength x B 
+# transformed -> P x maxlength x B
+# pred -> maxlength x maxlength x B
+function (p::TwoWordPSDProbe)(x, y, masks, sentlengths)
+    transformed = mmul(p.probe, convert(_atype, x))  
+    maxlength = size(transformed,2)
+    B = size(transformed,3)
+    preds = []
+    tmp = []
+    for b in 1:B
+        sent = transformed[:,:,b]
+        squared_distances = []
+        for i in 1:size(sent,2)
+            df = hcat(sent[:,i] .- sent)
+            squared_df = abs2.(df) #
+            squared_distance = sum(squared_df, dims=1) 
+            push!(squared_distances, squared_distance)
+        end
+        pred = vcat(squared_distances...)
+        pred = pred .* convert(_atype, masks[:,:,b])
+        push!(preds, pred)
+    end
+    preds = cat(preds..., dims=3)
+    loss  = sum(abs.(preds - convert(_atype, y)))
+    squared_length = sum(abs2.(sentlengths))
+    loss /= squared_length
+    println("loss: $loss")
+    return loss
+end
+
+
 function (p::TwoWordPSDProbe)(x)
     squared_distances = []
-    transformed = mmul(p.probe, x)  # 1024 x 29  or 1024 x 29 x 1 , E x T x B
+    transformed = mmul(p.probe, x)  # x-> E x T
     for i in 1:size(transformed,2)
         df = hcat(transformed[:,i] .- transformed)
-        squared_df = abs2.(df) # 1024 x 8 x 1
-        squared_distance = sum(squared_df, dims=1) # 1 x 8 x 1
+        squared_df = abs2.(df) 
+        squared_distance = sum(squared_df, dims=1) 
         push!(squared_distances, squared_distance)
     end
     return vcat(squared_distances...)

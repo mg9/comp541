@@ -27,17 +27,16 @@ end
 
 function report_uuas(preds, dataset)
     uuas_total = 0
-    uspan_total = 0
     for (id, pred_distances) in preds
         sent = dataset[id]
-        gold_edges = union_find(length(sent.observations), pairs_to_distances(sent, sent.distances))
-        pred_edges = union_find(length(sent.observations), pairs_to_distances(sent, pred_distances))
+        n = length(sent.observations)
+        gold_edges = union_find(n, pairs_to_distances(sent, sent.distances))
+        pred_edges = union_find(n, pairs_to_distances(sent, pred_distances))
         uuas_sent = length(findall(in(pred_edges), gold_edges)) / length(gold_edges)
         if isnan(uuas_sent) continue; end
         uuas_total += uuas_sent
-        uspan_total += length(gold_edges)
     end
-    return uuas_total/ uspan_total
+    return uuas_total / length(preds)
 end
 
 
@@ -76,6 +75,7 @@ function union_find(n, pairs_to_distances)
         end
         return i_parent
     end
+
     edges = []
     local parents = collect(1:1:n)
     for ((i_index, j_index), distance) in sort(collect(pairs_to_distances),by=x->x[2])

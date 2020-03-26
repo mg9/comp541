@@ -18,17 +18,16 @@ mutable struct SentenceObservations
     observations
     embeddings
     distances
+    sentencelength
 end
 
 mutable struct Dataset
-    trn
-    dev 
-    test 
+    sents::Dict{Any,Any}
+    batchsize
 end
 
-function Dataset(args)
-    trn, dev, test = read_from_disk(args)
-    Dataset(trn, dev, test)
+function Dataset(sents, batchsize)
+    Dataset(sents, batchsize)
 end
 
 function Observation(lineparts)
@@ -38,8 +37,8 @@ function Observation(lineparts)
     end
 end
 
-function SentenceObservations(id, observations)
-   SentenceObservations(id, observations, Any, Any)
+function SentenceObservations(id, observations,sentencelength)
+   SentenceObservations(id, observations, Any, Any, sentencelength)
 end
 
 
@@ -56,10 +55,9 @@ function load_conll_dataset(model_layer, corpus_path, embeddings_path, distances
             push!(observations, obs)
         else
             numsentences += 1; 
-            sent_observations[numsentences] =  SentenceObservations(numsentences, observations)  
+            sent_observations[numsentences] =  SentenceObservations(numsentences, observations, length(observations))  
             observations = []
         end
-        #end
     end
     
     withembeddings = add_embeddings(model_layer, sent_observations, embeddings_path)
@@ -83,7 +81,6 @@ end
 
 
 function add_sentence_distances(sent_observations, pathbase, batchsize)
-
     for id in 1:length(sent_observations)
         if id% batchsize >0 ? k=floor(id/batchsize) + 1 : k=floor(id/batchsize); end
         distances_file = string(pathbase,string(Integer(k)),".h5")
