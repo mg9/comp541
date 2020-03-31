@@ -54,47 +54,31 @@ for each sentence in the batch.
     
 """ 
 # probesize -> P x E 
-# x -> E x maxlength x B 
-# transformed -> P x maxlength x B
-# pred -> maxlength x maxlength x B
-function (p::TwoWordPSDProbe)(x, y, masks, sentlengths)
-    transformed = mmul(p.probe, convert(_atype, x))  
-    maxlength = size(transformed,2)
-    B = size(transformed,3)
-    preds = []
-    tmp = []
-    for b in 1:B
-        sent = transformed[:,:,b]
-        squared_distances = []
-        for i in 1:size(sent,2)
-            df = hcat(sent[:,i] .- sent)
-            squared_df = abs2.(df) #
-            squared_distance = sum(squared_df, dims=1) 
-            push!(squared_distances, squared_distance)
-        end
-        pred = vcat(squared_distances...)
-        pred = pred .* convert(_atype, masks[:,:,b])
-        push!(preds, pred)
-    end
-    preds = cat(preds..., dims=3)
-    loss  = sum(abs.(preds - convert(_atype, y)))
-    squared_length = sum(abs2.(sentlengths))
-    loss /= squared_length
-    println("loss: $loss")
-    return loss
+# batch -> E x T x B 
+function probetransform(probe, batch, golds, masks, sentlengths)
+    _, lossm = predict(probe, batch, golds, masks, sentlengths)
+    return lossm
 end
 
-
-function (p::TwoWordPSDProbe)(x)
-    squared_distances = []
-    transformed = mmul(p.probe, x)  # x-> E x T
-    for i in 1:size(transformed,2)
-        df = hcat(transformed[:,i] .- transformed)
-        squared_df = abs2.(df) 
-        squared_distance = sum(squared_df, dims=1) 
-        push!(squared_distances, squared_distance)
-    end
-    return vcat(squared_distances...)
+function predict(probe, batch, golds, masks, sentlengths)
+    maxlength = sentlengths[1]
+    B = length(sentlengths)
+    transformed = mmul(probe, convert(_atype,batch))  
+    transformed = permutedims(transformed, (3,2,1))
+    transformed = reshape(transformed, (1024,maxlength,1,B)) # P x T x 1 x B
+    dummy = convert(_atype, zeros(1,1,maxlength,1))
+    transformed = transformed .+ dummy
+    transposed = permutedims(transformed, (1,3,2,4))
+    diffs = transformed - transposed
+    squareddists = abs2.(diffs)
+    squareddists = sum(diffs, dims=1)
+    squareddists = reshape(squareddists, (B,maxlength, maxlength)) # B x T x T
+    squareddists = permutedims(squareddists, (3,2,1)) # T x T x B
+    squareddists = convert(_atype,masks) .* squareddists
+    lossm = sum(abs.(squareddists - convert(_atype,golds)))
+    lossm /= sum(sentlengths)
+    lossm /= B
+    return squareddists, lossm
 end
 
 

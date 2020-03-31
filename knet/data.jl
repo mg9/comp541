@@ -22,12 +22,16 @@ mutable struct SentenceObservations
 end
 
 mutable struct Dataset
-    sents::Dict{Any,Any}
+    sents::Array{Any,1}
     batchsize
+    ids
 end
 
 function Dataset(sents, batchsize)
-    Dataset(sents, batchsize)
+    dsents =  sort(collect(sents),by=x->x.sentencelength, rev=true)
+    i(x) = return x.id
+    ids = i.(dsents)
+    Dataset(dsents, batchsize, ids)
 end
 
 function Observation(lineparts)
@@ -37,8 +41,8 @@ function Observation(lineparts)
     end
 end
 
-function SentenceObservations(id, observations,sentencelength)
-   SentenceObservations(id, observations, Any, Any, sentencelength)
+function SentenceObservations(id, observations, embeddings, sentencelength)
+   SentenceObservations(id, observations, embeddings, Any, sentencelength)
 end
 
 
@@ -46,37 +50,28 @@ end
     Returns dictionaries for dataset sentence observations.
 """
 function load_conll_dataset(model_layer, corpus_path, embeddings_path, distances_path, distances_batch_size)
-    sent_observations = Dict()
+    
     observations = []
-    numsentences = 0
-    for line in eachline(corpus_path)
+    numsentences = 0 
+    embeddings = h5open(embeddings_path, "r") do file
+        read(file)
+    end
+    sent_observations = []
+
+    @info "Embeddings loaded from $embeddings_path"
+    for line in readlines(corpus_path)
         obs = Observation(split(line))
         if !isnothing(obs)
             push!(observations, obs)
         else
             numsentences += 1; 
-            sent_observations[numsentences] =  SentenceObservations(numsentences, observations, length(observations))  
+            push!(sent_observations, SentenceObservations(numsentences, observations,embeddings[string(numsentences-1)][:,:, model_layer+1] ,length(observations)))  
             observations = []
         end
     end
-    
-    withembeddings = add_embeddings(model_layer, sent_observations, embeddings_path)
-    withdistances = add_sentence_distances(withembeddings, distances_path, distances_batch_size)
-
+    println("Sent observations loaded from corpus: ", size(sent_observations))
+    withdistances = add_sentence_distances(sent_observations, distances_path, distances_batch_size)
     return withdistances
-end
-
-
-function add_embeddings(model_layer, sent_observations, embeddings_path)
-    println("Loading Pretrained Embeddings from $embeddings_path , using layer $model_layer")
-    embeddings = h5open(embeddings_path, "r") do file
-        read(file)
-    end
-    for id in 1:length(sent_observations)
-        sentence_embeddings = embeddings[string(id-1)]  # e.g. 1024 x 18 x 3
-        sent_observations[id].embeddings =  sentence_embeddings[:,:, model_layer+1]
-    end
-    return sent_observations
 end
 
 

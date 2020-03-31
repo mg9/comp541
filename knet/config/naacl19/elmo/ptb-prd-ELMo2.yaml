@@ -14,13 +14,13 @@ dataset:
     root: data/treebank3/distances/
     train_path: train/sentencedistances-ptb3-train
     dev_path: dev/sentencedistances-ptb3-dev
-  batch_size: 20
+  batch_size: 4
 model:
   hidden_dim: 1024 # ELMo hidden dim
   model_layer: 2 # BERT-base: {1,...,12}; ELMo: {1,2,3}
 probe:
   task_signature: word_pair # word, word_pair
-  maximum_rank: 32
+  maximum_rank: 1024
 probe_training:
   epochs: 40
   loss: L1
