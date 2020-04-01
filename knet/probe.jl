@@ -6,32 +6,32 @@ _usegpu = gpu()>=0
 _atype = ifelse(_usegpu, KnetArray{Float32}, Array{Float64})
 
 struct TwoWordPSDProbe
-    probe
+    w
 end
 
 struct OneWordPSDProbe
-    probe
+    w
 end
 
 function TwoWordPSDProbe(model_dim::Int, probe_rank::Int)
-    probe = param(rand(Uniform(-0.5,0.5), (probe_rank, model_dim)), atype=_atype)
-    TwoWordPSDProbe(probe)
+    w = param(rand(Uniform(-0.05,0.05), (probe_rank, model_dim)), atype=_atype)
+    TwoWordPSDProbe(w)
 end
 
 
 function OneWordPSDProbe(model_dim::Int, probe_rank::Int)
-    probe = param(probe_rank, model_dim)
-    OneWordPSDProbe(probe)
+    w = param(probe_rank, model_dim)
+    OneWordPSDProbe(w)
 end
 
 function loadTwoWordPSDProbe(mparams)
-    probe = param(KnetArray(mparams))
-    TwoWordPSDProbe(probe)
+    w = param(KnetArray(mparams))
+    TwoWordPSDProbe(w)
 end
 
 function loadOneWordPSDProbe(mparams)
-    probe = param(mparams)
-    OneWordPSDProbe(probe)
+    w = param(mparams)
+    OneWordPSDProbe(w)
 end
 
 function mmul(w, x)
@@ -56,30 +56,30 @@ for each sentence in the batch.
 # probesize -> P x E 
 # batch -> E x T x B 
 function probetransform(probe, batch, golds, masks, sentlengths)
-    _, lossm = predict(probe, batch, golds, masks, sentlengths)
+    _, lossm = pred(probe, batch, golds, masks, sentlengths)
     return lossm
 end
 
-function predict(probe, batch, golds, masks, sentlengths)
-    maxlength = sentlengths[1]
-    B = length(sentlengths)
-    transformed = mmul(probe, convert(_atype,batch))  
-    transformed = permutedims(transformed, (3,2,1))
-    transformed = reshape(transformed, (1024,maxlength,1,B)) # P x T x 1 x B
-    dummy = convert(_atype, zeros(1,1,maxlength,1))
-    transformed = transformed .+ dummy
-    transposed = permutedims(transformed, (1,3,2,4))
-    diffs = transformed - transposed
-    squareddists = abs2.(diffs)
-    squareddists = sum(diffs, dims=1)
-    squareddists = reshape(squareddists, (B,maxlength, maxlength)) # B x T x T
-    squareddists = permutedims(squareddists, (3,2,1)) # T x T x B
-    squareddists = convert(_atype,masks) .* squareddists
-    lossm = sum(abs.(squareddists - convert(_atype,golds)))
-    lossm /= sum(sentlengths)
-    lossm /= B
-    return squareddists, lossm
+
+function pred(probe, batch, golds, masks, sentlengths)
+    maxlength = sentlengths[1]
+    B = length(sentlengths)
+    transformed = mmul(probe.w, convert(_atype,batch))    # P x T x B
+    transformed = reshape(transformed, (1024,maxlength,1,B)) # P x T x 1 x B
+    dummy = convert(_atype, zeros(1,1,maxlength,1))
+    transformed = transformed .+ dummy   # P x T x T x B
+    transposed = permutedims(transformed, (1,3,2,4))
+    diffs = transformed - transposed
+    squareddists = abs2.(diffs)
+    squareddists = sum(diffs, dims=1)  # 1 x T x T x B
+    squareddists = reshape(squareddists, (maxlength, maxlength,B)) #  T x T x B
+    squareddists = convert(_atype,masks) .* squareddists
+    lossm = sum(abs.(squareddists - convert(_atype,golds)))
+    lossm /= sum(sentlengths)
+    lossm /= B
+    return squareddists, lossm
 end
+
 
 
 """ 

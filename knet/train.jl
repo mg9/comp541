@@ -69,13 +69,13 @@ function train(probe, trn, dev)
     progress!(ncycle(epoch, 5), seconds=5) do x; 
       trnloss = 0
       for (batch, golds, masks, sentlengths) in trnbatches[1:50]
-        tpreds, tloss = predict(probe, batch, golds, masks, sentlengths)
+        tpreds, tloss = pred(probe, batch, golds, masks, sentlengths)
         trnloss += tloss
       end
 
       devloss = 0
       for (batch, golds, masks, sentlengths) in devbatches[1:50]
-        dpreds, dloss = predict(probe, batch, golds, masks, sentlengths)
+        dpreds, dloss = pred(probe, batch, golds, masks, sentlengths)
         devloss += dloss
       end
       println("trnloss: $trnloss, devloss: $devloss")
@@ -84,11 +84,10 @@ function train(probe, trn, dev)
       #println("5-50 spearman mean: $five_to_fifty_sprmean, uuas: $uuas")
     end
       ## Saving the probe
-      #probename = "probe_rank1024_v$i.jld2"
+      #probename = "probe_rank1024_v3.jld2"
       #@info "Saving the probe $probename" 
       #Knet.save(probename,"probe",probe)
       #i+=1
-
 end
 
 
@@ -100,5 +99,5 @@ disk = read_from_disk(args)
 trn = Dataset(disk[1], batchsize)
 dev = Dataset(disk[2], batchsize)
 probe = choose_probe(args)
-train(probe.probe, trn, dev)
+train(probe, trn, dev)
 
