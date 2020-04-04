@@ -24,7 +24,7 @@ end
 
 function iterate(d::Dataset, state=collect(1:length(d.sents)))
    
-    println("hey! ", length(state))
+    #println("hey! ", length(state))
     new_state = copy(state)
     new_state_len = length(new_state) 
     if new_state_len == 0 
@@ -64,30 +64,40 @@ end
 function train(probe, trn, dev)
     trnbatches = collect(trn)
     devbatches = collect(dev)
-    epoch = adam(probetransform, ((probe, batch, golds, masks, sentlengths) for (batch, golds,masks, sentlengths) in trnbatches))
-    #i = 3
-    progress!(ncycle(epoch, 5), seconds=5) do x; 
-      trnloss = 0
-      for (batch, golds, masks, sentlengths) in trnbatches[1:50]
-        tpreds, tloss = pred(probe, batch, golds, masks, sentlengths)
-        trnloss += tloss
+    epoch = adam(probetransform, ((probe, batch, golds, masks, sentlengths) for (batch, golds,masks, sentlengths) in trnbatches), lr= 0.001)
+    progress!(ncycle(epoch, 1), seconds=10) do x;
+
+      # TODO refactor here
+      devpreds = Dict()
+      for (k, (batch, golds, masks, sentlengths)) in enumerate(devbatches)
+        dpreds, _ = pred(probe, batch, golds, masks, sentlengths)
+        id = 4*k -3
+        devpreds[id] = dpreds[:,:,1][1:sentlengths[1],1:sentlengths[1]]
+        devpreds[id+1] = dpreds[:,:,2][1:sentlengths[2],1:sentlengths[2]]
+        devpreds[id+2] = dpreds[:,:,3][1:sentlengths[3],1:sentlengths[3]]
+        devpreds[id+3] = dpreds[:,:,4][1:sentlengths[4],1:sentlengths[4]]
+        k += 1
       end
 
-      devloss = 0
-      for (batch, golds, masks, sentlengths) in devbatches[1:50]
-        dpreds, dloss = pred(probe, batch, golds, masks, sentlengths)
-        devloss += dloss
-      end
-      println("trnloss: $trnloss, devloss: $devloss")
-      #five_to_fifty_sprmean = report_spearmanr(devpreds, dev.sents)
-      #uuas = report_uuas(devpreds, dev.sents)
-      #println("5-50 spearman mean: $five_to_fifty_sprmean, uuas: $uuas")
+      five_to_fifty_sprmean = report_spearmanr(devpreds, dev.sents)
+      uuas = report_uuas(devpreds, dev.sents)
+      println("5-50 spearman mean: $five_to_fifty_sprmean, uuas: $uuas")
     end
-      ## Saving the probe
-      #probename = "probe_rank1024_v3.jld2"
-      #@info "Saving the probe $probename" 
-      #Knet.save(probename,"probe",probe)
-      #i+=1
+     
+    #=
+    trnloss = 0
+    for (batch, golds, masks, sentlengths) in trnbatches[1:50]
+      tpreds, tloss = pred(probe, batch, golds, masks, sentlengths)
+      trnloss += tloss
+    end
+    println("trnloss: $trnloss, devloss: $devloss")
+    =#
+    
+    ## Saving the probe
+    #probename = "probe_rank1024_v3.jld2"
+    #@info "Saving the probe $probename" 
+    #Knet.save(probename,"probe",probe)
+    #i+=1
 end
 
 

@@ -65,21 +65,23 @@ function pred(probe, batch, golds, masks, sentlengths)
     maxlength = sentlengths[1]
     B = length(sentlengths)
     transformed = mmul(probe.w, convert(_atype,batch))    # P x T x B
-    transformed = reshape(transformed, (1024,maxlength,1,B)) # P x T x 1 x B
+    transformed = reshape(transformed, (size(transformed,1),maxlength,1,B)) # P x T x 1 x B
     dummy = convert(_atype, zeros(1,1,maxlength,1))
     transformed = transformed .+ dummy   # P x T x T x B
     transposed = permutedims(transformed, (1,3,2,4))
     diffs = transformed - transposed
     squareddists = abs2.(diffs)
-    squareddists = sum(diffs, dims=1)  # 1 x T x T x B
+    squareddists = sum(squareddists, dims=1)  # 1 x T x T x B
     squareddists = reshape(squareddists, (maxlength, maxlength,B)) #  T x T x B
     squareddists = convert(_atype,masks) .* squareddists
-    lossm = sum(abs.(squareddists - convert(_atype,golds)))
-    lossm /= sum(sentlengths)
-    lossm /= B
-    return squareddists, lossm
+    
+    a = abs.(squareddists - convert(_atype,golds))
+    b = reshape(a, (size(a,1)*size(a,2),B))
+    b = sum(b,dims=1)
+    normalized_sent_losses = vec(b)./ convert(_atype, abs2.(sentlengths))
+    batchloss = sum(normalized_sent_losses) /  B
+    return squareddists, batchloss
 end
-
 
 
 """ 
