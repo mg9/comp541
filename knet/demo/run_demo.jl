@@ -9,6 +9,8 @@ CONFIG_PATH = "demo-bert.yaml"
 TWO_WORD_PROBE_PARAMS_PATH = "distanceprobe.h5"
 ONE_WORD_PROBE_PARAMS_PATH = "depthprobe.h5"
 
+TWO_WORD_PROBE_PARAMS_PATH = "../trainedprobe-distance.h5"
+
 
 """
     report_on_stdin(yaml_args)

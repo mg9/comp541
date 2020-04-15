@@ -61,44 +61,56 @@ function length(d::Dataset)
 end
 
 
+function loss(probe, data)
+    loss = 0
+    for (batch, golds,masks, sentlengths) in data
+        loss  += probetransform(probe, batch, golds, masks, sentlengths)
+    end
+    return loss
+end
+
+
 function train(probe, trn, dev)
     trnbatches = collect(trn)
     devbatches = collect(dev)
-    epoch = adam(probetransform, ((probe, batch, golds, masks, sentlengths) for (batch, golds,masks, sentlengths) in trnbatches), lr= 0.001)
-    progress!(ncycle(epoch, 1), seconds=10) do x;
-
-      # TODO refactor here
-      devpreds = Dict()
-      for (k, (batch, golds, masks, sentlengths)) in enumerate(devbatches)
-        dpreds, _ = pred(probe, batch, golds, masks, sentlengths)
-        id = 4*k -3
-        devpreds[id] = dpreds[:,:,1][1:sentlengths[1],1:sentlengths[1]]
-        devpreds[id+1] = dpreds[:,:,2][1:sentlengths[2],1:sentlengths[2]]
-        devpreds[id+2] = dpreds[:,:,3][1:sentlengths[3],1:sentlengths[3]]
-        devpreds[id+3] = dpreds[:,:,4][1:sentlengths[4],1:sentlengths[4]]
-        k += 1
+    epoch = adam(probetransform, ((probe, batch, golds, masks, sentlengths) for (batch, golds,masks, sentlengths) in trnbatches), lr=0.001)
+    for e in 1:10
+      progress!(epoch) 
+      trnloss = loss(probe, trnbatches)
+      devloss = loss(probe, devbatches)
+      println("epoch $e, trnloss: $trnloss, devloss: $devloss")
+      
+      # Reducing lr 
+      lrr = Any
+      for p in params(probe)
+        p.opt.lr =  p.opt.lr/2
+        lrr = p.opt.lr
       end
+      println("lr reduced to $lrr")
+    end
 
-      five_to_fifty_sprmean = report_spearmanr(devpreds, dev.sents)
-      uuas = report_uuas(devpreds, dev.sents)
-      println("5-50 spearman mean: $five_to_fifty_sprmean, uuas: $uuas")
+    # TODO refactor here
+    devpreds = Dict()
+    for (k, (batch, golds, masks, sentlengths)) in enumerate(devbatches)
+      dpreds, _ = pred(probe, batch, golds, masks, sentlengths)
+      id = 4*k -3
+      devpreds[id] = dpreds[:,:,1][1:sentlengths[1],1:sentlengths[1]]
+      devpreds[id+1] = dpreds[:,:,2][1:sentlengths[2],1:sentlengths[2]]
+      devpreds[id+2] = dpreds[:,:,3][1:sentlengths[3],1:sentlengths[3]]
+      devpreds[id+3] = dpreds[:,:,4][1:sentlengths[4],1:sentlengths[4]]
+      k += 1
     end
-     
-    #=
-    trnloss = 0
-    for (batch, golds, masks, sentlengths) in trnbatches[1:50]
-      tpreds, tloss = pred(probe, batch, golds, masks, sentlengths)
-      trnloss += tloss
-    end
-    println("trnloss: $trnloss, devloss: $devloss")
-    =#
+    five_to_fifty_sprmean = report_spearmanr(devpreds, dev.sents)
+    uuas = report_uuas(devpreds, dev.sents)
+    println("5-50 spearman mean: $five_to_fifty_sprmean, uuas: $uuas")
     
     ## Saving the probe
-    #probename = "probe_rank1024_v3.jld2"
+    #probename = "probe_rank1024_bestv1.jld2"
     #@info "Saving the probe $probename" 
     #Knet.save(probename,"probe",probe)
-    #i+=1
-end
+
+ end
+
 
 
 
