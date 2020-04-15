@@ -74,12 +74,12 @@ function train(probe, trn, dev)
     trnbatches = collect(trn)
     devbatches = collect(dev)
     epoch = adam(probetransform, ((probe, batch, golds, masks, sentlengths) for (batch, golds,masks, sentlengths) in trnbatches), lr=0.001)
+
     for e in 1:10
       progress!(epoch) 
       trnloss = loss(probe, trnbatches)
       devloss = loss(probe, devbatches)
       println("epoch $e, trnloss: $trnloss, devloss: $devloss")
-      
       # Reducing lr 
       lrr = Any
       for p in params(probe)
@@ -100,15 +100,14 @@ function train(probe, trn, dev)
       devpreds[id+3] = dpreds[:,:,4][1:sentlengths[4],1:sentlengths[4]]
       k += 1
     end
+
     five_to_fifty_sprmean = report_spearmanr(devpreds, dev.sents)
     uuas = report_uuas(devpreds, dev.sents)
     println("5-50 spearman mean: $five_to_fifty_sprmean, uuas: $uuas")
-    
     ## Saving the probe
     #probename = "probe_rank1024_bestv1.jld2"
     #@info "Saving the probe $probename" 
     #Knet.save(probename,"probe",probe)
-
  end
 
 
