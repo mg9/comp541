@@ -55,13 +55,13 @@ for each sentence in the batch.
 """ 
 # probesize -> P x E 
 # batch -> E x T x B 
-function probetransform(probe, batch, golds, masks, sentlengths)
-    _, lossm = pred(probe, batch, golds, masks, sentlengths)
+function probetransform(probe, batch,  golddistances, golddepths, masks, sentlengths)
+    _, lossm = pred(probe, batch,  golddistances, golddepths,  masks, sentlengths)
     return lossm
 end
 
 
-function pred_distance(probe, batch, golds, masks, sentlengths)
+function pred_distance(probe, batch, golddistances, golddepths, masks, sentlengths)
     maxlength = sentlengths[1]
     B = length(sentlengths)
     transformed = mmul(probe.w, convert(_atype,batch))    # P x T x B
@@ -75,7 +75,7 @@ function pred_distance(probe, batch, golds, masks, sentlengths)
     squareddists = reshape(squareddists, (maxlength, maxlength,B)) #  T x T x B
     squareddists = convert(_atype,masks) .* squareddists
     
-    a = abs.(squareddists - convert(_atype,golds))
+    a = abs.(squareddists - convert(_atype,golddistances))
     b = reshape(a, (size(a,1)*size(a,2),B))
     b = sum(b,dims=1)
     normalized_sent_losses = vec(b)./ convert(_atype, abs2.(sentlengths))
@@ -116,12 +116,3 @@ function pred_depth(probe, batch, golddistances, golddepths, masks, sentlengths)
     batchloss = sum(normalized_sent_losses) /  B
     return squarednorms, batchloss
 end
-
-
-
-
-
-
-
-
-

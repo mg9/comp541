@@ -145,8 +145,8 @@ function train_distances(probe, trn, dev)
 
     # TODO refactor here
     devpreds = Dict()
-    for (k, (batch, golds, masks, sentlengths)) in enumerate(devbatches)
-      dpreds, _ = pred_distance(probe, batch, golds, masks, sentlengths)
+    for (k, (batch, golds, golddepths, masks, sentlengths)) in enumerate(devbatches)
+      dpreds, _ = pred_distance(probe, batch, golds, golddepths, masks, sentlengths)
       id = 4*k -3
       devpreds[id] = dpreds[:,:,1][1:sentlengths[1],1:sentlengths[1]]
       devpreds[id+1] = dpreds[:,:,2][1:sentlengths[2],1:sentlengths[2]]
