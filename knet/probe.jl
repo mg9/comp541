@@ -61,7 +61,7 @@ function probetransform(probe, batch, golds, masks, sentlengths)
 end
 
 
-function pred(probe, batch, golds, masks, sentlengths)
+function pred_distance(probe, batch, golds, masks, sentlengths)
     maxlength = sentlengths[1]
     B = length(sentlengths)
     transformed = mmul(probe.w, convert(_atype,batch))    # P x T x B

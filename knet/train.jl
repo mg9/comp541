@@ -68,7 +68,7 @@ function length(d::Dataset)
 end
 
 
-function loss(probe, data)
+function loss_distance(probe, data)
     loss = 0
     for (batch, golddistances, golddepths, masks, sentlengths) in data
         loss  += probetransform(probe, batch, golddistances, golddepths, masks, sentlengths)
@@ -77,7 +77,7 @@ function loss(probe, data)
 end
 
 
-function loss_oneword(probe, data)
+function loss_depth(probe, data)
     loss = 0
     for (batch, golddistances, golddepths, masks, sentlengths) in data
         loss  += depthprobetransform(probe, batch, golddistances, golddepths, masks, sentlengths)
@@ -86,15 +86,15 @@ function loss_oneword(probe, data)
 end
 
 
-function train_oneword(probe, trn, dev)
+function train_depths(probe, trn, dev)
     trnbatches = collect(trn)
     devbatches = collect(dev)
     epoch = adam(depthprobetransform, ((probe, batch, golddistances, golddepths, masks, sentlengths) for (batch, golddistances, golddepths, masks, sentlengths) in trnbatches))
 
     for e in 1:10
       progress!(epoch) 
-      trnloss = loss_oneword(probe, trnbatches)
-      devloss = loss_oneword(probe, devbatches)
+      trnloss = loss_depth(probe, trnbatches)
+      devloss = loss_depth(probe, devbatches)
       println("epoch $e, trnloss: $trnloss, devloss: $devloss")
       # Reducing lr 
       lrr = Any
@@ -118,23 +118,21 @@ function train_oneword(probe, trn, dev)
     end
 
     five_to_fifty_sprmean = report_spearmanr_depth(devpreds, dev.sents)
-    uuas = report_uuas(devpreds, dev.sents)
-    println("5-50 spearman mean: $five_to_fifty_sprmean, uuas: $uuas")
+    root_acc = report_root_acc(devpreds, dev.sents)
+    println("5-50 spearman mean: $five_to_fifty_sprmean, root_acc: $root_acc")
 
  end
 
 
-
-
-function train(probe, trn, dev)
+function train_distances(probe, trn, dev)
     trnbatches = collect(trn)
     devbatches = collect(dev)
     epoch = adam(probetransform, ((probe, batch, golds, golddepths, masks, sentlengths) for (batch, golds, golddepths, masks, sentlengths) in trnbatches))
 
     for e in 1:10
       progress!(epoch) 
-      trnloss = loss(probe, trnbatches)
-      devloss = loss(probe, devbatches)
+      trnloss = loss_distance(probe, trnbatches)
+      devloss = loss_distance(probe, devbatches)
       println("epoch $e, trnloss: $trnloss, devloss: $devloss")
       # Reducing lr 
       lrr = Any
@@ -148,7 +146,7 @@ function train(probe, trn, dev)
     # TODO refactor here
     devpreds = Dict()
     for (k, (batch, golds, masks, sentlengths)) in enumerate(devbatches)
-      dpreds, _ = pred(probe, batch, golds, masks, sentlengths)
+      dpreds, _ = pred_distance(probe, batch, golds, masks, sentlengths)
       id = 4*k -3
       devpreds[id] = dpreds[:,:,1][1:sentlengths[1],1:sentlengths[1]]
       devpreds[id+1] = dpreds[:,:,2][1:sentlengths[2],1:sentlengths[2]]
@@ -177,5 +175,5 @@ disk = read_from_disk(args)
 trn = Dataset(disk[1], batchsize)
 dev = Dataset(disk[2], batchsize)
 probe = choose_probe(args)
-train(probe, trn, dev)
-train_oneword(probe,trn, dev)
+train_distances(probe, trn, dev)
+train_depths(probe,trn, dev)

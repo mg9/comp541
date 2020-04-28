@@ -48,6 +48,20 @@ function report_spearmanr_depth(preds, dataset)
 end
 
 
+function report_root_acc(preds, dataset)
+    correct_root_preds = 0
+    total_sents = 0
+    for (id, pred_depths) in preds
+        sent = dataset[id]
+        gold_depths = sent.depths
+        root_index = findall(x->x==0, gold_depths)[1]
+        pred_root_index = get_nopunct_argmin(sent, pred_depths)
+        if root_index == pred_root_index;  correct_root_preds+=1; end
+        total_sents += 1
+    end
+    println("correct_root_preds: $correct_root_preds, total_sents: $total_sents")
+    return correct_root_preds / total_sents
+end
 
 
 function report_uuas(preds, dataset)
@@ -112,4 +126,18 @@ function union_find(n, pairs_to_distances)
         end
     end
     return edges
+end
+
+
+function get_nopunct_argmin(sent, preds)
+    tmp = Array(preds)
+    puncts = ["''", ",", ".", ":", "``", "-LRB-", "-RRB-"]
+    predicted_index = argmin(tmp)
+    while sent.observations[predicted_index].xpos_sentence in puncts
+        new_min = minimum(tmp)
+        new_ind = argmin(tmp)
+        deleteat!(tmp, new_ind)
+        predicted_index = findall(x->x==new_min, Array(preds))[1]
+    end
+    return predicted_index
 end
