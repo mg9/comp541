@@ -25,6 +25,31 @@ function report_spearmanr(preds, dataset)
 end
 
 
+function report_spearmanr_depth(preds, dataset)
+    five_to_fifty = []
+    spsents = Dict()
+    for (id, pred_depths) in preds
+        sent = dataset[id]
+        gold_depths = sent.depths
+        sentlength = length(sent.observations) 
+        if !(sentlength in keys(spsents))
+            spsents[sentlength] = []
+        end
+        push!(spsents[sentlength],corspearman(Array(pred_depths), gold_depths))
+    end
+    mean_spsents = mean.(values(spsents))
+    for (length, sp) in collect(zip(keys(spsents), mean_spsents))
+      if 51>length>4
+        push!(five_to_fifty, sp) 
+      end
+    end
+    five_to_fifty_sprmean = mean(five_to_fifty) 
+    return five_to_fifty_sprmean
+end
+
+
+
+
 function report_uuas(preds, dataset)
     uuas_total = 0
     for (id, pred_distances) in preds

@@ -20,7 +20,7 @@ end
 
 
 function OneWordPSDProbe(model_dim::Int, probe_rank::Int)
-    w = param(probe_rank, model_dim)
+    w = param(rand(Uniform(-0.05,0.05), (probe_rank, model_dim)), atype=_atype)
     OneWordPSDProbe(w)
 end
 
@@ -30,7 +30,7 @@ function loadTwoWordPSDProbe(mparams)
 end
 
 function loadOneWordPSDProbe(mparams)
-    w = param(mparams)
+    w = param(KnetArray(mparams))
     OneWordPSDProbe(w)
 end
 
@@ -84,19 +84,44 @@ function pred(probe, batch, golds, masks, sentlengths)
 end
 
 
+
 """ 
     onewordprobe(x)
-Computes L1 norm of words after projection by a matrix.
-"""
-function (p::OneWordPSDProbe)(x)
-    norms = []
-    transformed = mmul(p.probe, x) 
-    for i in 1:size(transformed,2)
-        #push!(norms, norm(transformed[:,i]))
-        push!(norms, transformed[:,i]' * transformed[:,i])
-    end
-    return norms
+Computes squared L2 norm of words after projection by a matrix.
+    
+""" 
+# probesize -> P x E 
+# batch -> E x T x B 
+function depthprobetransform(probe, batch, golddistances, golddepths, masks, sentlengths)
+    _, lossm = pred_depth(probe, batch, golddistances, golddepths, masks, sentlengths)
+    return lossm
 end
+
+
+function pred_depth(probe, batch, golddistances, golddepths, masks, sentlengths)
+    maxlength = sentlengths[1]
+    B = length(sentlengths)
+    transformed = mmul(probe.w, convert(_atype,batch))    # P x T x B
+    P = size(transformed,1)
+    T = size(transformed,2)
+    b = reshape(transformed, (1, P, B * maxlength))
+    b2 = reshape(transformed, (P, 1, B * maxlength))
+    norms = bmm(b,b2) # 1 x 1 x (T*B)
+    squarednorms = reshape(norms, (maxlength, 1, B)) # T x 1 x B
+
+    a = abs.(squarednorms - convert(_atype, golddepths))
+    d = reshape(a, (size(a,1)*size(a,2),B))
+    d = sum(d, dims=1)
+    normalized_sent_losses = vec(d)./ convert(_atype, abs2.(sentlengths))
+    batchloss = sum(normalized_sent_losses) /  B
+    return squarednorms, batchloss
+end
+
+
+
+
+
+
 
 
 
