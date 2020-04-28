@@ -12,11 +12,9 @@ function choose_probe(args)
   maximum_rank = args["probe"]["maximum_rank"] 
   embed_dim = args["model"]["hidden_dim"]
   if args["probe"]["task_signature"] == "word"
-    return OneWordPSDProbe
+    return OneWordPSDProbe(embed_dim, maximum_rank)
   elseif args["probe"]["task_signature"] == "word_pair"
     return TwoWordPSDProbe(embed_dim, maximum_rank)
-  elseif args["probe"]["task_signature"] == "word_depth"
-    return OneWordPSDProbe(embed_dim, maximum_rank)
   end
 end
 
@@ -168,7 +166,7 @@ function train_distances(probe, trn, dev)
 
 
 
-CONFIG_PATH = "config/naacl19/elmo/ptb-prd-ELMo1.yaml"
+CONFIG_PATH = "config/naacl19/bert/ptb-prd-BERTbase7.yaml"
 args = YAML.load(open(CONFIG_PATH))
 batchsize = args["dataset"]["batch_size"]
 disk = read_from_disk(args)

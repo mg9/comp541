@@ -105,7 +105,8 @@ function load_bert_layer(model_layer, corpus_path, distances_path, depths_path, 
     end
     println("Sent observations loaded from corpus: ", size(sent_observations))
     withdistances = add_sentence_distances(sent_observations, distances_path, distances_batch_size)
-    return withdistances
+    withdepths = add_sentence_depths(sent_observations, depths_path, distances_batch_size)
+    return withdepths
 end
 
 
@@ -182,7 +183,6 @@ function read_from_disk(args)
     train_distances_path = join([distances_root,args["dataset"]["distances"]["train_path"]])
     dev_distances_path = join([distances_root,args["dataset"]["distances"]["dev_path"]])
 
-
     train_depths_path = join([depths_root,args["dataset"]["depths"]["train_path"]])
     dev_depths_path = join([depths_root,args["dataset"]["depths"]["dev_path"]])
 
@@ -200,7 +200,3 @@ function read_from_disk(args)
 
     return train_sents_observations, dev_sents_observations, Any # test_observations
 end
-
-
-
-
