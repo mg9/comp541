@@ -1,0 +1,19 @@
+dataset:
+  corpus:
+    root: data/treebank3/
+    train_path: ptb3-wsj-train.conllx
+    dev_path: ptb3-wsj-dev.conllx
+    test_path: ptb3-wsj-test.conllx
+  embeddings:
+    root: data/treebank3/ 
+    train_path: bert_base.ptb3-train.hdf5
+    dev_path: bert_base.ptb3-dev.hdf5
+    test_path: bert_base.ptb3-test.hdf5
+  batch_size: 4
+model:
+  type: bert
+  hidden_dim: 768 # BERT hidden dim
+  model_layer: 7 # BERT-base: {1,...,12}; ELMo: {1,2,3}
+probe:
+  task_signature: word_pair # word, word_pair
+  maximum_rank: 768

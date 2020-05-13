@@ -13,3 +13,6 @@ Reference:
         publisher =   "Association for Computational Linguistics",
         location =    "Minneapolis, USA",
       }
+
+
+* To replicate the results put the embeddings file under the related path in your config *<model_name>.yaml* and run train.jl with that yaml.

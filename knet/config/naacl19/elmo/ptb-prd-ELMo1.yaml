@@ -13,7 +13,7 @@ dataset:
 model:
   type: elmo
   hidden_dim: 1024 # ELMo hidden dim
-  model_layer: 2 # BERT-base: {1,...,12}; ELMo: {1,2,3}
+  model_layer: 1 # BERT-base: {1,...,12}; ELMo: {1,2,3}
 probe:
-  task_signature: word # word, word_pair
+  task_signature: word_pair # word, word_pair
   maximum_rank: 1024
