@@ -56,7 +56,7 @@ for each sentence in the batch.
 # probesize -> P x E 
 # batch -> E x T x B 
 function probetransform(probe, batch,  golddistances, golddepths, masks, sentlengths)
-    _, lossm = pred(probe, batch,  golddistances, golddepths,  masks, sentlengths)
+    _, lossm = pred_distance(probe, batch,  golddistances, golddepths,  masks, sentlengths)
     return lossm
 end
 
